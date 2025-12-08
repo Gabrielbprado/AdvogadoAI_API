@@ -1,0 +1,17 @@
+{
+    "editor.formatOnSave": false,
+    "[python]": {
+        "editor.formatOnSave": false
+    },
+    "python.analysis.exclude": [
+        "**/.venv/**",
+        "**/venv/**",
+        "**/env/**"
+    ],
+    "files.watcherExclude": {
+        "**/.venv/**": true
+    },
+    "search.exclude": {
+        "**/.venv/**": true
+    }
+}

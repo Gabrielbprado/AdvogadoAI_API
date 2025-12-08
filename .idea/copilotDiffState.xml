@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/app/__init__.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/__init__.py" />
+              <option name="updatedContent" value="# Package initializer for app&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/agents/__init__.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/agents/__init__.py" />
+              <option name="updatedContent" value="# Package initializer for app.agents&#10;from .reader_agent import reader&#10;from .analyst_agent import analyst&#10;from .lawyer_agent import lawyer&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/crews/analyst_crew.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/crews/analyst_crew.py" />
+              <option name="originalContent" value="from crewai import Crew&#10;from services.tasks import task_reader, task_analyst, task_writing&#10;from services.agents import reader, analyst, lawyer&#10;&#10;&#10;crew_analyst = Crew(&#10;    agents=[analyst],&#10;    tasks=[task_analyst]&#10;)" />
+              <option name="updatedContent" value="from crewai import Crew&#10;from ..tasks.reader_task import task_reader&#10;from ..tasks.analyst_task import task_analyst&#10;from ..tasks.writer_task import task_writing&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;&#10;crew_analyst = Crew(&#10;    agents=[analyst],&#10;    tasks=[task_analyst]&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/crews/reader_crew.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/crews/reader_crew.py" />
+              <option name="originalContent" value="from crewai import Crew&#10;from services.tasks import task_reader, task_analyst, task_writing&#10;from services.agents import reader, analyst, lawyer&#10;&#10;crew_reader = Crew(&#10;    agents=[reader],&#10;    tasks=[task_reader]&#10;)" />
+              <option name="updatedContent" value="from crewai import Crew&#10;from ..tasks.reader_task import task_reader&#10;from ..tasks.analyst_task import task_analyst&#10;from ..tasks.writer_task import task_writing&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;crew_reader = Crew(&#10;    agents=[reader],&#10;    tasks=[task_reader]&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/crews/writer_crew.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/crews/writer_crew.py" />
+              <option name="originalContent" value="from crewai import Crew&#10;from services.tasks import task_reader, task_analyst, task_writing&#10;from services.agents import reader, analyst, lawyer&#10;&#10;&#10;crew_lawyer = Crew(&#10;    agents=[lawyer],&#10;    tasks=[task_writing]&#10;)" />
+              <option name="updatedContent" value="from crewai import Crew&#10;from ..tasks.reader_task import task_reader&#10;from ..tasks.analyst_task import task_analyst&#10;from ..tasks.writer_task import task_writing&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;&#10;crew_lawyer = Crew(&#10;    agents=[lawyer],&#10;    tasks=[task_writing]&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/pipelines/workflow_reader_analyst_writer.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/pipelines/workflow_reader_analyst_writer.py" />
+              <option name="originalContent" value="from langgraph.graph import StateGraph, END&#10;from typing import TypedDict&#10;from crews import crew_reader, crew_analyst, crew_lawyer&#10;&#10;class Estado(TypedDict):&#10;    text: str&#10;    reader: str&#10;    analysis: str&#10;    writing: str&#10;&#10;def step_reader(state: Estado):&#10;    result = crew_reader.kickoff(inputs={&quot;text&quot;: state[&quot;text&quot;]})&#10;    state[&quot;reader&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;def step_analyst(state: Estado):&#10;    result = crew_analyst.kickoff(inputs={&quot;text&quot;: state[&quot;reader&quot;]})&#10;    state[&quot;analysis&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;def step_lawyer(state: Estado):&#10;    result = crew_lawyer.kickoff(inputs={&quot;text&quot;: state[&quot;analysis&quot;]})&#10;    state[&quot;writing&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;graph = StateGraph(Estado)&#10;graph.add_node(&quot;Reader&quot;, step_reader)&#10;graph.add_node(&quot;Analyst&quot;, step_analyst)&#10;graph.add_node(&quot;Lawyer&quot;, step_lawyer)&#10;&#10;graph.set_entry_point(&quot;Reader&quot;)&#10;graph.add_edge(&quot;Reader&quot;, &quot;Analyst&quot;)&#10;graph.add_edge(&quot;Analyst&quot;, &quot;Lawyer&quot;)&#10;graph.add_edge(&quot;Lawyer&quot;, END)&#10;app = graph.compile()&#10;" />
+              <option name="updatedContent" value="from langgraph.graph import StateGraph, END&#10;from typing import TypedDict&#10;from ..crews import crew_reader, crew_analyst, crew_lawyer&#10;&#10;class Estado(TypedDict):&#10;    text: str&#10;    reader: str&#10;    analysis: str&#10;    writing: str&#10;&#10;def step_reader(state: Estado):&#10;    result = crew_reader.kickoff(inputs={&quot;text&quot;: state[&quot;text&quot;]})&#10;    state[&quot;reader&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;def step_analyst(state: Estado):&#10;    result = crew_analyst.kickoff(inputs={&quot;text&quot;: state[&quot;reader&quot;]})&#10;    state[&quot;analysis&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;def step_lawyer(state: Estado):&#10;    result = crew_lawyer.kickoff(inputs={&quot;text&quot;: state[&quot;analysis&quot;]})&#10;    state[&quot;writing&quot;] = result.tasks_output[0].raw&#10;    return state&#10;&#10;graph = StateGraph(Estado)&#10;graph.add_node(&quot;Reader&quot;, step_reader)&#10;graph.add_node(&quot;Analyst&quot;, step_analyst)&#10;graph.add_node(&quot;Lawyer&quot;, step_lawyer)&#10;&#10;graph.set_entry_point(&quot;Reader&quot;)&#10;graph.add_edge(&quot;Reader&quot;, &quot;Analyst&quot;)&#10;graph.add_edge(&quot;Analyst&quot;, &quot;Lawyer&quot;)&#10;graph.add_edge(&quot;Lawyer&quot;, END)&#10;app = graph.compile()" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/tasks/analyst_task.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/tasks/analyst_task.py" />
+              <option name="originalContent" value="from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;&#10;&#10;task_analyst = Task(&#10;    description=(&#10;        &quot;Analise o resumo fornecido e aprofunde a avaliação jurídica, identificando riscos, abusividades e &quot;&#10;        &quot;inconsistências. Sua análise deve considerar aspectos de coerência interna, legalidade e conformidade.\n\n&quot;&#10;        &quot;Você deve identificar:\n&quot;&#10;        &quot;- Riscos jurídicos potenciais\n&quot;&#10;        &quot;- Cláusulas potencialmente abusivas\n&quot;&#10;        &quot;- Inconsistências jurídicas ou lógicas (datas conflitantes, valores divergentes, obrigações incompatíveis, &quot;&#10;        &quot;contradições internas, lacunas, duplicidades, etc.)\n\n&quot;&#10;        &quot;Resumo analisado:\n{text}&quot;&#10;    ),&#10;    expected_output=&quot;&quot;&quot;&#10;    Retorne sempre um JSON no formato:&#10;&#10;    {&#10;      &quot;riscos_juridicos&quot;: [&quot;risco 1&quot;, &quot;risco 2&quot;],&#10;      &quot;clausulas_abusivas&quot;: [&quot;cláusula A&quot;, &quot;cláusula B&quot;],&#10;      &quot;inconsistencias&quot;: [&#10;        &quot;Ex.: A cláusula 3 estabelece prazo de 12 meses, enquanto a cláusula 7 menciona 18 meses para o mesmo objeto.&quot;&#10;      ]&#10;    }&#10;    &quot;&quot;&quot;,&#10;    agent=analyst&#10;)&#10;" />
+              <option name="updatedContent" value="from crewai import Task&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;&#10;task_analyst = Task(&#10;    description=(&#10;        &quot;Analise o resumo fornecido e aprofunde a avaliação jurídica, identificando riscos, abusividades e &quot;&#10;        &quot;inconsistências. Sua análise deve considerar aspectos de coerência interna, legalidade e conformidade.\n\n&quot;&#10;        &quot;Você deve identificar:\n&quot;&#10;        &quot;- Riscos jurídicos potenciais\n&quot;&#10;        &quot;- Cláusulas potencialmente abusivas\n&quot;&#10;        &quot;- Inconsistências jurídicas ou lógicas (datas conflitantes, valores divergentes, obrigações incompatíveis, &quot;&#10;        &quot;contradições internas, lacunas, duplicidades, etc.)\n\n&quot;&#10;        &quot;Resumo analisado:\n{text}&quot;&#10;    ),&#10;    expected_output=&quot;&quot;&quot;&#10;    Retorne sempre um JSON no formato:&#10;&#10;    {&#10;      &quot;riscos_juridicos&quot;: [&quot;risco 1&quot;, &quot;risco 2&quot;],&#10;      &quot;clausulas_abusivas&quot;: [&quot;cláusula A&quot;, &quot;cláusula B&quot;],&#10;      &quot;inconsistencias&quot;: [&#10;        &quot;Ex.: A cláusula 3 estabelece prazo de 12 meses, enquanto a cláusula 7 menciona 18 meses para o mesmo objeto.&quot;&#10;      ]&#10;    }&#10;    &quot;&quot;&quot;,&#10;    agent=analyst&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/tasks/reader_task.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/tasks/reader_task.py" />
+              <option name="originalContent" value="from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;task_reader = Task(&#10;    description=(&#10;        &quot;Leia cuidadosamente o documento fornecido e identifique os elementos jurídicos essenciais. &quot;&#10;        &quot;Sua análise deve considerar não apenas o conteúdo explícito, mas também possíveis divergências internas.\n\n&quot;&#10;        &quot;Você deve extrair:\n&quot;&#10;        &quot;- Tópicos ou temas principais mencionados\n&quot;&#10;        &quot;- Cláusulas relevantes para interpretação jurídica\n&quot;&#10;        &quot;- Riscos identificáveis no próprio texto\n&quot;&#10;        &quot;- Inconsistências internas do documento (ex.: valores diferentes, datas conflitantes, partes divergentes, &quot;&#10;        &quot;numerações incorretas, termos contraditórios, etc.)\n\n&quot;&#10;        &quot;Documento:\n{text}&quot;&#10;    ),&#10;    expected_output=&quot;&quot;&quot;&#10;    Retorne um JSON SEMPRE no formato abaixo:&#10;&#10;    {&#10;      &quot;topicos_principais&quot;: [&quot;tópico 1&quot;, &quot;tópico 2&quot;],&#10;      &quot;clausulas_relevantes&quot;: [&quot;cláusula A&quot;, &quot;cláusula B&quot;],&#10;      &quot;riscos_identificados&quot;: [&quot;risco 1&quot;, &quot;risco 2&quot;],&#10;      &quot;inconsistencias_internas&quot;: [&#10;        &quot;Descrição clara da inconsistência encontrada. Ex.: O valor aparece como R$ 2.000,00 em uma seção e como R$ 3.000,00 em outra.&quot;&#10;      ]&#10;    }&#10;&#10;    - Se algum item não for encontrado, retorne lista vazia.&#10;    - NÃO invente informações que não estejam no texto.&#10;    &quot;&quot;&quot;,&#10;    agent=reader&#10;)&#10;" />
+              <option name="updatedContent" value="from crewai import Task&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;task_reader = Task(&#10;    description=(&#10;        &quot;Leia cuidadosamente o documento fornecido e identifique os elementos jurídicos essenciais. &quot;&#10;        &quot;Sua análise deve considerar não apenas o conteúdo explícito, mas também possíveis divergências internas.\n\n&quot;&#10;        &quot;Você deve extrair:\n&quot;&#10;        &quot;- Tópicos ou temas principais mencionados\n&quot;&#10;        &quot;- Cláusulas relevantes para interpretação jurídica\n&quot;&#10;        &quot;- Riscos identificáveis no próprio texto\n&quot;&#10;        &quot;- Inconsistências internas do documento (ex.: valores diferentes, datas conflitantes, partes divergentes, &quot;&#10;        &quot;numerações incorretas, termos contraditórios, etc.)\n\n&quot;&#10;        &quot;Documento:\n{text}&quot;&#10;    ),&#10;    expected_output=&quot;&quot;&quot;&#10;    Retorne um JSON SEMPRE no formato abaixo:&#10;&#10;    {&#10;      &quot;topicos_principais&quot;: [&quot;tópico 1&quot;, &quot;tópico 2&quot;],&#10;      &quot;clausulas_relevantes&quot;: [&quot;cláusula A&quot;, &quot;cláusula B&quot;],&#10;      &quot;riscos_identificados&quot;: [&quot;risco 1&quot;, &quot;risco 2&quot;],&#10;      &quot;inconsistencias_internas&quot;: [&#10;        &quot;Descrição clara da inconsistência encontrada. Ex.: O valor aparece como R$ 2.000,00 em uma seção e como R$ 3.000,00 em outra.&quot;&#10;      ]&#10;    }&#10;&#10;    - Se algum item não for encontrado, retorne lista vazia.&#10;    - NÃO invente informações que não estejam no texto.&#10;    &quot;&quot;&quot;,&#10;    agent=reader&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/app/tasks/writer_task.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/tasks/writer_task.py" />
+              <option name="originalContent" value="from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;from crewai import Task&#10;from services.agents import reader, analyst, lawyer&#10;&#10;&#10;task_writing = Task(&#10;    description=(&#10;        &quot;Com base na análise jurídica fornecida abaixo, elabore um parecer jurídico completo, claro e profissional &quot;&#10;        &quot;em formato Markdown. O texto deve ser preciso, objetivo e fundamentado.\n\n&quot;&#10;        &quot;ANÁLISE JURÍDICA:\n{text}\n\n&quot;&#10;        &quot;O parecer deve conter obrigatoriamente:\n&quot;&#10;        &quot;- **Introdução:** contexto e objetivo do parecer\n&quot;&#10;        &quot;- **Fundamentação jurídica:** base legal, princípios aplicáveis, interpretação doutrinária quando pertinente\n&quot;&#10;        &quot;- **Análise detalhada dos riscos, cláusulas abusivas e inconsistências identificadas**\n&quot;&#10;        &quot;- **Conclusão com recomendações práticas e possíveis caminhos jurídicos**\n\n&quot;&#10;        &quot;Regras:\n&quot;&#10;        &quot;- Não solicite mais informações.\n&quot;&#10;        &quot;- Use apenas o conteúdo disponível.\n&quot;&#10;        &quot;- Produza um texto com linguagem jurídica profissional, adequado para advogados e empresas.\n&quot;&#10;    ),&#10;    expected_output=&quot;Retorne apenas o parecer jurídico final em Markdown. Não retornar JSON.&quot;,&#10;    agent=lawyer&#10;)&#10;" />
+              <option name="updatedContent" value="from crewai import Task&#10;from ..agents.reader_agent import reader&#10;from ..agents.analyst_agent import analyst&#10;from ..agents.lawyer_agent import lawyer&#10;&#10;&#10;task_writing = Task(&#10;    description=(&#10;        &quot;Com base na análise jurídica fornecida abaixo, elabore um parecer jurídico completo, claro e profissional &quot;&#10;        &quot;em formato Markdown. O texto deve ser preciso, objetivo e fundamentado.\n\n&quot;&#10;        &quot;ANÁLISE JURÍDICA:\n{text}\n\n&quot;&#10;        &quot;O parecer deve conter obrigatoriamente:\n&quot;&#10;        &quot;- **Introdução:** contexto e objetivo do parecer\n&quot;&#10;        &quot;- **Fundamentação jurídica:** base legal, princípios aplicáveis, interpretação doutrinária quando pertinente\n&quot;&#10;        &quot;- **Análise detalhada dos riscos, cláusulas abusivas e inconsistências identificadas**\n&quot;&#10;        &quot;- **Conclusão com recomendações práticas e possíveis caminhos jurídicos**\n\n&quot;&#10;        &quot;Regras:\n&quot;&#10;        &quot;- Não solicite mais informações.\n&quot;&#10;        &quot;- Use apenas o conteúdo disponível.\n&quot;&#10;        &quot;- Produza um texto com linguagem jurídica profissional, adequado para advogados e empresas.\n&quot;&#10;    ),&#10;    expected_output=&quot;Retorne apenas o parecer jurídico final em Markdown. Não retornar JSON.&quot;,&#10;    agent=lawyer&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
