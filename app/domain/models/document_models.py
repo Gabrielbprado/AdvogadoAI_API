@@ -25,6 +25,7 @@ class DocumentRecord(BaseModel):
     doc_id: str
     file_path: Path
     metadata: DocumentMetadata
+    owner_id: int | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -54,13 +55,24 @@ class DocumentRepository:
         """Persist a document record in memory."""
         self._records[record.doc_id] = record
 
-    def get(self, doc_id: str) -> DocumentRecord:
-        """Retrieve a document record or raise an error if absent."""
+    def get(self, doc_id: str, *, owner_id: int | None = None) -> DocumentRecord:
+        """Retrieve a document record or raise an error if absent or unauthorized."""
         try:
-            return self._records[doc_id]
+            record = self._records[doc_id]
         except KeyError as exc:
             raise DocumentProcessingError(f"Document {doc_id} not found") from exc
 
-    def exists(self, doc_id: str) -> bool:
-        """Return whether a document record exists."""
-        return doc_id in self._records
+        if owner_id is not None and record.owner_id and record.owner_id != owner_id:
+            raise DocumentProcessingError("Documento não pertence ao usuário autenticado")
+        return record
+
+    def exists(self, doc_id: str, *, owner_id: int | None = None) -> bool:
+        """Return whether a document record exists and optionally belongs to the owner."""
+        if doc_id not in self._records:
+            return False
+        if owner_id is None:
+            return True
+        record = self._records[doc_id]
+        if record.owner_id is None:
+            return True
+        return record.owner_id == owner_id

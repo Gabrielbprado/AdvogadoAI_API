@@ -17,7 +17,9 @@ TModel = TypeVar("TModel", bound=BaseModel)
 
 READER_EXPECTED_JSON = {
     "topicos_principais": [],
-    "clausulas_relevantes": [],
+    "clausulas": [
+        {"numero": "1", "titulo": "DO OBJETO", "texto": "O presente contrato tem como objeto..."}
+    ],
     "pontos_chave": [],
     "informacoes_extraidas": {"partes": [], "valores": [], "datas": []},
 }
@@ -27,6 +29,9 @@ ANALYST_EXPECTED_JSON = {
     "inconsistencias": [],
     "clausulas_abusivas": [],
     "melhorias_recomendadas": [],
+    "avisos": [
+        {"aviso": "", "detalhe": "", "trecho": ""}
+    ],
 }
 
 LAWYER_EXPECTED_JSON = {
@@ -43,33 +48,39 @@ _PT_JSON_DIRECTIVE = (
 class TaskFactory:
     """Factory for strongly typed CrewAI tasks."""
 
-    def _build_task(self, agent: Agent, prompt: str, expected: dict) -> Task:
-        full_description = f"{prompt}\n\n{_PT_JSON_DIRECTIVE}"
+    def _build_task(self, agent: Agent, prompt: str, expected: dict, user_context: str | None = None) -> Task:
+        contextual = f"\n\nDiretrizes do usuário:\n{user_context}" if user_context else ""
+        full_description = f"{prompt}{contextual}\n\n{_PT_JSON_DIRECTIVE}"
         return Task(
             description=full_description,
             expected_output=json.dumps(expected, ensure_ascii=False),
             agent=agent,
         )
 
-    def create_reader_task(self, agent: Agent) -> Task:
+    def create_reader_task(self, agent: Agent, user_context: str | None = None) -> Task:
         prompt = (
-            "Analise o contrato completo e extraia topicos principais, clausulas relevantes, "
-            "partes envolvidas, valores e datas."
+            "Analise o trecho do contrato e extraia TODAS as cláusulas presentes nele. "
+            "Se houver cláusulas numeradas (1, 2, 3...), capture o número, o título e o texto completo. "
+            "Não resuma o texto da cláusula. "
+            "Também extraia tópicos principais, partes, valores e datas."
         )
-        return self._build_task(agent, prompt, READER_EXPECTED_JSON)
+        return self._build_task(agent, prompt, READER_EXPECTED_JSON, user_context)
 
-    def create_analyst_task(self, agent: Agent) -> Task:
+    def create_analyst_task(self, agent: Agent, user_context: str | None = None) -> Task:
         prompt = (
             "A partir da extracao do leitor, detalhe riscos juridicos, inconsistencias, clausulas abusivas "
-            "e melhorias recomendadas."
+            "e melhorias recomendadas. "
+            "Responda explicitamente ao(s) aviso(s) prioritario(s) do usuario em um campo 'avisos': "
+            "para cada aviso, devolva {aviso, detalhe, trecho}. "
+            "Se houver ocorrencias, explique o porquê e cite o trecho/referencia. Se nao houver, use detalhe='sem ocorrencias' e deixe trecho vazio."
         )
-        return self._build_task(agent, prompt, ANALYST_EXPECTED_JSON)
+        return self._build_task(agent, prompt, ANALYST_EXPECTED_JSON, user_context)
 
-    def create_writer_task(self, agent: Agent) -> Task:
+    def create_writer_task(self, agent: Agent, user_context: str | None = None) -> Task:
         prompt = (
             "Consolide todo o estudo em parecer resumido, parecer detalhado e contra-proposta juridica."
         )
-        return self._build_task(agent, prompt, LAWYER_EXPECTED_JSON)
+        return self._build_task(agent, prompt, LAWYER_EXPECTED_JSON, user_context)
 
 
 def parse_task_output(content: str, model: Type[TModel]) -> TModel:
@@ -168,6 +179,7 @@ def _normalize_analyst_payload(payload: Any) -> dict:
     data = _ensure_dict(payload)
     for field in ["riscos", "inconsistencias", "clausulas_abusivas", "melhorias_recomendadas"]:
         data[field] = _coerce_list_of_strings(data.get(field))
+    data["avisos"] = _coerce_alerts(data.get("avisos"))
     return data
 
 
@@ -242,6 +254,28 @@ def _coerce_entities(value: Any, allowed_keys: List[str], fallback_key: str) -> 
             if text:
                 entities.append({fallback_key: text})
     return entities
+
+
+def _coerce_alerts(value: Any) -> List[dict]:
+    """Normalize avisos into list of {aviso, detalhe, trecho}."""
+    if not value:
+        return []
+    items = value if isinstance(value, list) else [value]
+    alerts: List[dict] = []
+    for item in items:
+        if isinstance(item, dict):
+            alerts.append(
+                {
+                    "aviso": _coerce_string(item.get("aviso") or item.get("alerta") or item.get("titulo")),
+                    "detalhe": _coerce_string(item.get("detalhe") or item.get("descricao") or item.get("motivo")),
+                    "trecho": _coerce_string(item.get("trecho") or item.get("referencia") or item.get("onde")),
+                }
+            )
+        else:
+            text = _coerce_string(item)
+            if text:
+                alerts.append({"aviso": text, "detalhe": text, "trecho": ""})
+    return alerts
 
 
 def _coerce_string(value: Any) -> str:

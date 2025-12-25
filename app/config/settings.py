@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="LawerAI")
     environment: str = Field(default="development")
     storage_dir: Path = Field(default=Path("data/uploads"))
+    database_url: str = Field(default="sqlite:///./data/app.db")
     llm_provider: Literal["openai", "gemini", "groq", "ollama"] = Field(default="openai")
     crewai_model: Optional[str] = Field(default=None)
     openai_model: str = Field(default="gpt-4o-mini")
@@ -29,12 +30,24 @@ class Settings(BaseSettings):
     crewai_logging_level: Optional[str] = Field(default=None, validation_alias="CREWAI_LOGGING_LEVEL")
     max_chunk_size: int = Field(default=2000, ge=256)
     langgraph_concurrency: int = Field(default=1, ge=1)
+    jwt_secret_key: str = Field(default="change-me", min_length=16)
+    jwt_algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=60, ge=5, le=1440)
     cors_allowed_origins: List[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"],
         validation_alias="CORS_ALLOWED_ORIGINS",
     )
 
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="LAWERAI_", case_sensitive=False)
+    jwt_expiration_hours: Optional[int] = Field(default=None, description="Deprecated; use access_token_expire_minutes")
+    api_rate_limit_per_minute: Optional[int] = Field(default=None, description="Reserved for future rate limiting")
+    enable_api_auth: bool = Field(default=True, description="Toggle auth for debugging environments")
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="LAWERAI_",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     def resolve_llm_model(self) -> str:
         """Return the concrete model to be used by CrewAI based on provider preferences."""

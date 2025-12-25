@@ -66,6 +66,56 @@ Resposta (200) — `FinalAnalysisResponse`:
 }
 ```
 
+### 3.3 Gestão de Negócios (Empresas, Produtos, Pedidos)
+
+Novos endpoints para listar e detalhar entidades de negócio.
+
+#### Empresas
+- **Listar todas**: `GET /business/empresas`
+- **Detalhar uma**: `GET /business/empresas/{id}`
+
+Exemplo de resposta (Lista):
+```json
+[
+  {
+    "id": "uuid-1",
+    "nome": "Tech Solutions Ltda",
+    "cnpj": "12.345.678/0001-90",
+    "endereco": "Rua da Inovação, 100"
+  }
+]
+```
+
+#### Produtos
+- **Listar todos**: `GET /business/produtos`
+- **Detalhar um**: `GET /business/produtos/{id}`
+
+Exemplo de resposta (Detalhe):
+```json
+{
+  "id": "uuid-prod-1",
+  "nome": "Consultoria Jurídica",
+  "descricao": "Análise de contratos",
+  "preco": 1500.0
+}
+```
+
+#### Pedidos
+- **Listar todos**: `GET /business/pedidos`
+- **Detalhar um**: `GET /business/pedidos/{id}`
+
+Exemplo de resposta (Detalhe):
+```json
+{
+  "id": "uuid-ped-1",
+  "empresa_id": "uuid-1",
+  "produtos_ids": ["uuid-prod-1", "uuid-prod-2"],
+  "valor_total": 6500.0,
+  "status": "aprovado",
+  "data_criacao": "2023-10-01T10:00:00Z"
+}
+```
+
 ## 4. Fluxo sugerido no front
 1. **Selecionar arquivo** e chamar `/document/upload` via `FormData`.
 2. Exibir feedback (barra de progresso, estado de envio).

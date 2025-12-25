@@ -23,6 +23,7 @@ class DocumentState(TypedDict, total=False):
     text: str
     chunks: List[str]
     response: FinalAnalysisResponse
+    user_context: str | None
 
 
 class DocumentPipelineGraph:
@@ -55,14 +56,15 @@ class DocumentPipelineGraph:
 
         self._graph = builder.compile()
 
-    def run(self, doc_id: str) -> FinalAnalysisResponse:
-        """Execute the pipeline for a stored document."""
-        record = self._repository.get(doc_id)
-        
+    def run(self, doc_id: str, *, owner_id: int | None = None, user_context: str | None = None) -> FinalAnalysisResponse:
+        """Execute the pipeline for a stored document, enforcing ownership when provided."""
+        record = self._repository.get(doc_id, owner_id=owner_id)
+
         state: DocumentState = {
             "doc_id": doc_id,
             "file_path": record.file_path,
             "metadata": record.metadata,
+            "user_context": user_context,
         }
 
         self._logger.info("Executing LangGraph pipeline for %s", doc_id)
@@ -88,7 +90,7 @@ class DocumentPipelineGraph:
 
     def _run_agents_node(self, state: DocumentState) -> DocumentState:
         """Execute CrewAI workflow over the prepared text."""
-        response = self._analysis_service.analyze(state.get("chunks", []))
+        response = self._analysis_service.analyze(state.get("chunks", []), user_context=state.get("user_context"))
         state["response"] = response
         self._logger.debug("Run agents node completed")
         return state

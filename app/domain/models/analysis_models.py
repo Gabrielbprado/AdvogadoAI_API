@@ -6,14 +6,14 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ClausulaRelevante(BaseModel):
-    """Cláusulas destacadas pelo agente leitor."""
+class Clausula(BaseModel):
+    """Cláusula extraída do documento."""
 
     model_config = ConfigDict(extra="ignore")
 
     numero: Optional[str] = None
-    descricao: str = ""
-    detalhes: Optional[str] = None
+    titulo: str = Field(default="", description="Título da cláusula (ex: 'DO OBJETO')")
+    texto: str = Field(default="", description="Texto integral da cláusula")
 
 
 class ParteInfo(BaseModel):
@@ -63,7 +63,7 @@ class ReaderExtraction(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     topicos_principais: List[str] = Field(default_factory=list)
-    clausulas_relevantes: List[ClausulaRelevante] = Field(default_factory=list)
+    clausulas: List[Clausula] = Field(default_factory=list)
     pontos_chave: List[str] = Field(default_factory=list)
     informacoes_extraidas: InformacoesExtraidas = Field(default_factory=InformacoesExtraidas)
 
@@ -77,6 +77,22 @@ class AnalystEvaluation(BaseModel):
     inconsistencias: List[str] = Field(default_factory=list)
     clausulas_abusivas: List[str] = Field(default_factory=list)
     melhorias_recomendadas: List[str] = Field(default_factory=list)
+    avisos: List["AvisoAnalise"] = Field(
+        default_factory=list,
+        description=(
+            "Resposta aos avisos prioritários: cada item traz o aviso original, justificativa e trecho/localização."
+        ),
+    )
+
+
+class AvisoAnalise(BaseModel):
+    """Resposta detalhada a um aviso prioritário do usuário."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    aviso: str = Field(default="", description="Aviso ou alerta solicitado pelo usuário")
+    detalhe: str = Field(default="", description="Por que o aviso foi acionado ou 'sem ocorrencias'")
+    trecho: Optional[str] = Field(default=None, description="Trecho ou referência no documento, quando aplicável")
 
 
 class ContraProposta(BaseModel):
@@ -100,9 +116,23 @@ class LawyerDraft(BaseModel):
     contra_proposta: ContraProposta = Field(default_factory=ContraProposta)
 
 
+class JurisprudenciaLink(BaseModel):
+    """Link de jurisprudência do Jusbrasil."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    termo: str = Field(description="Termo jurídico identificado")
+    url: str = Field(description="URL de busca no Jusbrasil")
+    fonte: str = Field(default="Jusbrasil", description="Fonte da jurisprudência")
+
+
 class FinalAnalysisResponse(BaseModel):
     """Resposta completa devolvida pela API."""
 
     extracao: ReaderExtraction
     analise: AnalystEvaluation
     parecer: LawyerDraft
+    jurisprudencia: List[JurisprudenciaLink] = Field(
+        default_factory=list,
+        description="Links automáticos para jurisprudência relacionada aos termos identificados no documento"
+    )
