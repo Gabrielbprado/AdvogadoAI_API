@@ -34,8 +34,10 @@ class ServiceContainer:
         self.logger = configure_logger()
         ensure_directory(self.settings.storage_dir)
 
-        self.session_factory = build_session_factory(self.settings.database_url)
-        create_all(self.settings.database_url, Base, self.settings.storage_dir)
+        database_url = self.settings.build_database_url()
+        self.session_factory = build_session_factory(database_url)
+        if self.settings.run_ddl_on_startup:
+            create_all(database_url, Base, self.settings.storage_dir)
 
         self.repository = DocumentRepository()
         self.pdf_service = PDFService(self.logger)

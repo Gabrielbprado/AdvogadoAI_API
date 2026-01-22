@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.services.rag_service import RAGService
 from app.domain.services.jurisprudence_service import JurisprudenceService
-from app.domain.models.document_models import DocumentRepository, DocumentProcessingError
+from app.domain.models.document_models import DocumentRecord, DocumentRepository, DocumentProcessingError
 from app.infrastructure.db.entities import User
 from app.api.security import oauth2_scheme
 from app.domain.services.auth_service import AuthService
@@ -23,6 +23,15 @@ class RAGQuestionRequest(BaseModel):
     """Request model for RAG question answering."""
     question: str = Field(..., description="Pergunta sobre o documento jurídico")
     doc_id: Optional[str] = Field(None, description="ID do documento para pesquisar (opcional para busca global)")
+
+
+class RAGDocumentQuestionRequest(BaseModel):
+    """Request model for RAG question answering scoped to one document."""
+    question: str = Field(..., description="Pergunta sobre o documento jurídico")
+    auto_ingest: bool = Field(
+        True,
+        description="Se verdadeiro, ingere automaticamente o documento caso ainda não esteja no índice",
+    )
 
 
 class JurisprudenceLink(BaseModel):
@@ -87,6 +96,34 @@ def build_rag_router(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado")
         return user
 
+    def _resolve_document_or_raise(doc_id: str, current_user: User) -> DocumentRecord:
+        try:
+            return repository.get(doc_id, owner_id=current_user.id)
+        except DocumentProcessingError as exc:
+            detail = str(exc)
+            status_code = status.HTTP_403_FORBIDDEN if "pertence" in detail.lower() else status.HTTP_404_NOT_FOUND
+            raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    def _ingest_document_or_raise(doc_record: DocumentRecord) -> None:
+        if not doc_record.file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Arquivo do documento não existe",
+            )
+
+        from app.domain.services.pdf_service import PDFService
+
+        pdf_service = PDFService(logger)
+        text = pdf_service.extract_text_from_pdf(str(doc_record.file_path))
+
+        if not text or not text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Não foi possível extrair texto do documento",
+            )
+
+        rag_service.ingest_document(doc_record.doc_id, text, chunk_size=500)
+
     @router.post("/ask", response_model=RAGAnswerResponse)
     async def ask_question(
         payload: RAGQuestionRequest,
@@ -114,18 +151,7 @@ def build_rag_router(
             
             # If doc_id provided, verify user has access
             if doc_id:
-                try:
-                    doc_record = repository.get_by_id(doc_id)
-                    if not doc_record or doc_record.owner_id != current_user.id:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Acesso negado ao documento"
-                        )
-                except DocumentProcessingError:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Documento não encontrado"
-                    )
+                _resolve_document_or_raise(doc_id, current_user)
             
             # Get RAG answer
             rag_response = rag_service.answer_question(
@@ -196,42 +222,8 @@ def build_rag_router(
             Ingestion status
         """
         try:
-            # Verify document access
-            try:
-                doc_record = repository.get_by_id(doc_id)
-                if not doc_record or doc_record.owner_id != current_user.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Acesso negado ao documento"
-                    )
-            except DocumentProcessingError:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Documento não encontrado"
-                )
-            
-            # Read document file
-            if not doc_record.file_path.exists():
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Arquivo do documento não existe"
-                )
-            
-            # For now, we assume the document is already extracted as text
-            # In production, you'd integrate with pdf_service
-            from app.domain.services.pdf_service import PDFService
-            pdf_service = PDFService(logger)
-            
-            text = pdf_service.extract_text_from_pdf(str(doc_record.file_path))
-            
-            if not text or not text.strip():
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Não foi possível extrair texto do documento"
-                )
-            
-            # Ingest into RAG
-            rag_service.ingest_document(doc_id, text, chunk_size=500)
+            doc_record = _resolve_document_or_raise(doc_id, current_user)
+            _ingest_document_or_raise(doc_record)
             
             return {
                 "status": "success",
@@ -247,6 +239,29 @@ def build_rag_router(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Erro ao ingerir documento"
             ) from exc
+
+    @router.post("/document/{doc_id}/ask", response_model=RAGAnswerResponse)
+    async def ask_question_for_document(
+        doc_id: str,
+        payload: RAGDocumentQuestionRequest,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> RAGAnswerResponse:
+        """Ask a question about a specific document, auto-ingesting if needed."""
+        if not payload.question or not payload.question.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A pergunta não pode estar vazia",
+            )
+
+        doc_record = _resolve_document_or_raise(doc_id, current_user)
+
+        if payload.auto_ingest and not rag_service.store.get_chunks_by_doc_id(doc_id):
+            _ingest_document_or_raise(doc_record)
+
+        # Reuse the existing ask_question logic with the enforced doc_id
+        enforced_payload = RAGQuestionRequest(question=payload.question, doc_id=doc_id)
+        return await ask_question(enforced_payload, current_user=current_user, db=db)
 
     @router.get("/summary/{doc_id}", response_model=DocumentSummaryResponse)
     async def get_document_summary(
@@ -265,19 +280,7 @@ def build_rag_router(
             Document summary with jurisprudence
         """
         try:
-            # Verify document access
-            try:
-                doc_record = repository.get_by_id(doc_id)
-                if not doc_record or doc_record.owner_id != current_user.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Acesso negado ao documento"
-                    )
-            except DocumentProcessingError:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Documento não encontrado"
-                )
+            doc_record = _resolve_document_or_raise(doc_id, current_user)
             
             # Get summary from RAG
             summary_data = rag_service.get_document_summary(doc_id)

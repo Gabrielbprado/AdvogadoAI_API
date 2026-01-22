@@ -1,4 +1,4 @@
-"""SQLite database setup and session helpers."""
+"""Database setup and session helpers (SQLite, MySQL, Azure SQL)."""
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -21,7 +21,7 @@ def get_engine(database_url: str) -> object:
     engine = _engine_cache.get(database_url)
     if engine is None:
         connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-        engine = create_engine(database_url, connect_args=connect_args)
+        engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
         _engine_cache[database_url] = engine
     return engine
 

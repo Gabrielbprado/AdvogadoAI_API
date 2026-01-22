@@ -19,6 +19,25 @@ class PDFService:
     def __init__(self, logger: Logger) -> None:
         self._logger = logger
 
+    def extract_text_from_pdf(self, file_path: str) -> str:
+        """Convenience wrapper used by RAG ingest to extract plain text.
+        Falls back to the same pdfplumber logic, but only returns the text string.
+        """
+        path = Path(file_path)
+        try:
+            with pdfplumber.open(path) as pdf:
+                pages_text = [page.extract_text() or "" for page in pdf.pages]
+        except Exception as exc:
+            self._logger.error("Failed to read PDF %s: %s", path, exc)
+            raise DocumentProcessingError("Unable to read PDF file") from exc
+
+        text = "\n".join(segment.strip() for segment in pages_text if segment).strip()
+        if not text:
+            raise DocumentProcessingError("No extractable text found in PDF")
+
+        self._logger.info("PDF %s extracted with %d characters", path.name, len(text))
+        return text
+
     def extract_text(self, doc_id: str, file_path: Path, metadata: DocumentMetadata) -> DocumentExtractionResult:
         """Extract textual content from a PDF file."""
         try:
