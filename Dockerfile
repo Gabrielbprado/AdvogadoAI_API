@@ -10,7 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# System deps for building wheels (bcrypt/Pillow), PDFs, and database drivers (MySQL/Azure SQL via pyodbc).
+# System deps for building wheels (bcrypt/Pillow), PDFs, and database drivers (MySQL/Azure SQL via pyodbc, Postgres via psycopg2).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -19,6 +19,7 @@ RUN apt-get update \
         libpng-dev \
         libfreetype6-dev \
         libopenjp2-7 \
+        libpq-dev \
         curl \
         apt-transport-https \
         ca-certificates \
